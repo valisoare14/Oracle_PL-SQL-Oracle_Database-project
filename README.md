@@ -3,7 +3,7 @@
   # Tehnologii utilizate:
 - **RDBMS:** Oracle Database
 - **Limbaj :** Oracle PL/SQL
-- 
+  
 # Tema Economică
 Tema economică aleasă pentru baza de date este **GESTIUNEA ANGAJATILOR UNEI FIRME**. Aplicația se ocupă de:
 - Gestiunea contribuțiilor la stat ale angajaților
