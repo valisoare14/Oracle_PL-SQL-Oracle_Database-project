@@ -209,7 +209,7 @@ end;
 /
 
 --Sa se afiseze locul nasterii angajatului cu prenumele introdus de la tastatura
---S? se trateze eroarea ap?rut? în cazul în care nu exist? nici un angajat cu acest prenume.
+--S? se trateze eroarea ap?rut? Ã®n cazul Ã®n care nu exist? nici un angajat cu acest prenume.
 set serveroutput on
 accept g_nume prompt 'Introduceti prenumele angajatului :'
 declare
