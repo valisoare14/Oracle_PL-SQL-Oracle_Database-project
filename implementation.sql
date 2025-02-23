@@ -1,518 +1,820 @@
-select*from angajat;
-select*from contabili;
-select*from contributii;
-select*from sediu;
-select*from conturi;
-select*from carte;
+SELECT * FROM employees;
+SELECT * FROM accountants;
+SELECT * FROM contributions;
+SELECT * FROM headquarters;
+SELECT * FROM accounts;
+SELECT * FROM employee_details;
 
-set serveroutput on
-declare
-v_nume angajat.nume%type;
-begin
-select nume into v_nume from angajat where id_angajat=1;
-dbms_output.put_line('Numele extras:'||v_nume);
-end;
+--------------------------------------------------------------------------------
+-- 1) SIMPLE PL/SQL BLOCK: SELECT + DBMS_OUTPUT
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_last_name  employees.last_name%TYPE;
+BEGIN
+   SELECT last_name
+     INTO v_last_name
+     FROM employees
+    WHERE employee_id = 1;
+
+   DBMS_OUTPUT.PUT_LINE('Extracted last_name: ' || v_last_name);
+END;
 /
-select * from angajat;
+SELECT * FROM employees;
 
---Sa se creeze tabela manageri prin intermediul unei variabile de tip varchar2.
---La creeare , in tabela manageri se va adauga o noua inregistrare
+--------------------------------------------------------------------------------
+-- 2) CREATE A TABLE (manager_table) DYNAMICALLY, 
+--    THEN INSERT A RECORD UPON CREATION (DEMO)
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+VARIABLE g_employee_id NUMBER; -- global variable
 
-set serveroutput on
-variable g_id_angajat number--variabila globala
-declare
-v_sir varchar2(200);
-begin 
-:g_id_angajat:=1;--initializare variabila globala
-v_sir:='create table manageri as select * from angajat where id_angajat='||:g_id_angajat;
-dbms_output.put_line(v_sir);
-execute immediate v_sir;
-end;
+DECLARE
+   v_sql VARCHAR2(200);
+BEGIN
+   :g_employee_id := 1; -- initialize the global variable
+
+   v_sql := 'CREATE TABLE manager_table AS '
+         || 'SELECT * FROM employees WHERE employee_id = '
+         || :g_employee_id;
+
+   DBMS_OUTPUT.PUT_LINE(v_sql);
+   EXECUTE IMMEDIATE v_sql;
+END;
 /
-select*from manageri;
-drop table manageri cascade constraints;
+SELECT * FROM manager_table;
+DROP TABLE manager_table CASCADE CONSTRAINTS;
 
---Sa se adauge o noua coloana numar_angajati in tabela sediu
-set serveroutput on
-declare
-v_sir_deexceutat varchar2(200);
-begin
-v_sir_deexceutat:='alter table sediu add(numar_angajati number(7))';
-dbms_output.put_line(v_sir_deexceutat);
-execute immediate v_sir_deexceutat;
-end;
+--------------------------------------------------------------------------------
+-- 3) ADD A NEW COLUMN (number_of_employees) TO HEADQUARTERS
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_sql_to_execute VARCHAR2(200);
+BEGIN
+   v_sql_to_execute := 'ALTER TABLE headquarters ADD (number_of_employees NUMBER(7))';
+   DBMS_OUTPUT.PUT_LINE(v_sql_to_execute);
+   EXECUTE IMMEDIATE v_sql_to_execute;
+END;
 /
-select*from sediu;
+SELECT * FROM headquarters;
 
---Se adauga o noua inregistrare in tabela angajat
-begin
-insert into angajat values(8 , 3 , 'DRAGHICI' , 'ALIN' , 29 , 1600);
-end;
+--------------------------------------------------------------------------------
+-- 4) ADD A NEW RECORD TO EMPLOYEES
+--------------------------------------------------------------------------------
+BEGIN
+   INSERT INTO employees
+   VALUES(8, 3, 'DRAGHICI', 'ALIN', 29, 1600);
+END;
 /
-select * from angajat;
+SELECT * FROM employees;
 
---Sa se adauge o noua inregistrare in tabela contabili cu ajutorul variabilelor de substitutie
-begin
-insert into contabili values(&id_contabili , &id_sef_contabil , '&nume' , '&prenume' , &id_sediu);
-end;
+--------------------------------------------------------------------------------
+-- 5) ADD A NEW RECORD TO ACCOUNTANTS USING SUBSTITUTION VARIABLES
+--------------------------------------------------------------------------------
+BEGIN
+   INSERT INTO accountants
+   VALUES(&accountant_id, &chief_accountant_id, '&last_name', '&first_name', &headquarters_id);
+END;
 /
-select * from contabili;
+SELECT * FROM accountants;
 
---Se mareste cu 10 procente salariul angajatilor din tabela 
---angajat care au in prezent salariul mai mic decat o 
---anumit  valoare:
-declare
-v_procent number:=0.1;
-v_prag_salarial NUMBER:=2400;
-begin
-update angajat set salariul=salariul*(1+v_procent) where salariul<v_prag_salarial;
-end;
+--------------------------------------------------------------------------------
+-- 6) INCREASE THE SALARY BY 10% FOR EMPLOYEES WHO EARN LESS THAN A GIVEN THRESHOLD
+--------------------------------------------------------------------------------
+DECLARE
+   v_percentage      NUMBER := 0.1;
+   v_salary_threshold NUMBER := 2400;
+BEGIN
+   UPDATE employees
+      SET salary = salary * (1 + v_percentage)
+    WHERE salary < v_salary_threshold;
+END;
 /
-select * from angajat;
+SELECT * FROM employees;
 
---In functie salariul angajatului
---avand id-ul citit de la tastatura, 
---se va afisa modificat pe ecran noua valoare.
--- 	Daca salariul este mai mic de 3000, 
---acesta se va dubla
--- 	Daca salariul este intre 3000 si 5000,  
---acesta se va mari de 1.5 ori
--- 	Altfel, pretul se va mari de 1.25 ori.
+--------------------------------------------------------------------------------
+-- 7) READ AN EMPLOYEE ID; IF THE SALARY IS:
+--    - <3000, THEN DOUBLE IT
+--    - BETWEEN 3000 AND 5000, THEN INCREASE BY 1.5
+--    - ELSE, INCREASE BY 1.25
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_id     employees.employee_id%TYPE;
+   v_salary employees.salary%TYPE;
+BEGIN
+   v_id := &employee_id;   -- user inputs ID
 
-set serveroutput on
-declare
-v_id angajat.id_angajat%type;
-v_salariul angajat.salariul%type;
-begin
-v_id:=&id_angajat;
-select salariul into v_salariul from angajat where id_angajat=v_id;
-dbms_output.put_line('Vechiul salariu : '||v_salariul);
-if v_salariul <3000 then
-    v_salariul:=2*v_salariul;
-elsif v_salariul between 3000 and 5000 then
-    v_salariul:=1.5*v_salariul;
-else
-    v_salariul:=1.25*v_salariul;
-end if;
-dbms_output.put_line('Noul salariu : '||v_salariul);
-end;
-/
+   SELECT salary
+     INTO v_salary
+     FROM employees
+    WHERE employee_id = v_id;
 
---Se afi eaz   n ordine angaja ii cu codurile  n intervalul 
---3-7 at t timp c t salariul acestora este mai mic 
---dec t media:
-set serveroutput on
-declare
-v_salmediu angajat.salariul%type;
-v_sal angajat.salariul%type;
-v_id angajat.id_angajat%type;
-begin
-select avg(salariul) into v_salmediu from angajat;
-dbms_output.put_line('Salariul mediu : '||v_salmediu);
-for v_id in 3..8 loop
-select salariul into v_sal from angajat where id_angajat=v_id;
-dbms_output.put_line('Angajatul cu id-ul '||v_id||' are salariul '||v_sal);
-exit when v_sal<v_salmediu;
-end loop;
-end;
-/
+   DBMS_OUTPUT.PUT_LINE('Old salary: ' || v_salary);
 
---IF
---IN fucntie de id-ul angajatului introdus de la tastatura , se va mari salariul acestuia cu 1.25 , daca are vechime mai mica de 20 de ani
--- , cu 1.5 daca are vechime intre 20 si 30 de ani , si cu 2 daca are vechime de peste 30 de ani.Sa se afiseze salariul initial si salariul final
-set serveroutput on
-accept g_id prompt 'Introduceti id-ul(intre 1 si 10) : '
-declare
-v_vechime carte.vechime%type;
-v_id angajat.id_angajat%type;
-v_salariul angajat.salariul%type;
-begin
-v_id:=&g_id;
-select a.salariul , c.vechime into v_salariul,v_vechime from angajat a , carte c where a.id_angajat=c.id_angajat and a.id_angajat=v_id;
-dbms_output.put_line('Salariul initial al angajatului este : '||v_salariul);
-if v_vechime<20 then
-    v_salariul:=v_salariul*1.25;
-elsif v_vechime between 20 and 30 then
-    v_salariul:=v_salariul*1.5;
-else
-        v_salariul:=v_salariul*2;
-end if;  
-dbms_output.put_line('Salariul final al angajatului este : '||v_salariul);
-update angajat set salariul=v_salariul where id_angajat=v_id;
-end;
-/
-rollback;
+   IF v_salary < 3000 THEN
+      v_salary := 2 * v_salary;
+   ELSIF v_salary BETWEEN 3000 AND 5000 THEN
+      v_salary := 1.5 * v_salary;
+   ELSE
+      v_salary := 1.25 * v_salary;
+   END IF;
 
---CASE..WHEN..THEN
---Sa se modifice cas-ul angajatului cu numele introdus de la tastatura astfel:
---daca are varsta cuprinsa intre 20-35 de ani , se micsoreaza cas-ul cu 5%
----daca are varsta cuprinsa intre 35-50 de ani , se micsoreaza cas-ul cu 10%
-----daca are varsta cuprinsa intre 50-69 de ani , se micsoreaza cas-ul cu 20%
---sa se afiseze cas-ul inainte si dupa modificare
-set serveroutput on
-accept g_nume prompt 'Introduceti numele angajatului : '
-declare
-v_nume angajat.nume%type;
-v_cas contributii.cas%type;
-v_varsta angajat.varsta%type;
-begin
-v_nume:='&g_nume';
-select c.cas , a.varsta into v_cas , v_varsta from contributii c, angajat a where a.id_angajat=c.id_angajat and a.nume=v_nume;
-dbms_output.put_line('cas inainte de modificare : '||v_cas);
-case when v_varsta between 20 and 35 then v_cas:=v_cas*0.95;
-when v_varsta between 35 and 50 then v_cas:=v_cas*0.9;
-else  v_cas:=v_cas*0.8;
-end case;
-dbms_output.put_line('cas dupa modificare : '||v_cas);
-update contributii set cas=v_cas where id_angajat=(select id_angajat from angajat where nume=v_nume);
-exception when no_data_found then dbms_output.put_line('Nu exista angajatul cu numele respectiv');
-end;
-/
-rollback;
-
-
---LOOP..END LOOP
---Sa se afiseze prenumele fiecarui angajat folosind structura repetitiva LOOP...END LOOP
-set serveroutput on
-declare
-v_nume angajat.nume%type;
-i number;
-begin
-i:=1;
-loop
-select nume into v_nume from angajat where id_angajat=i;
-dbms_output.put_line('Nume angajat : '||v_nume);
-i:=i+1;
-exit when i>10;
-end loop;
-end;
+   DBMS_OUTPUT.PUT_LINE('New salary: ' || v_salary);
+END;
 /
 
+--------------------------------------------------------------------------------
+-- 8) DISPLAY EMPLOYEES WITH IDs 3 TO 7 IN ORDER, AS LONG AS THEIR SALARY 
+--    IS LOWER THAN THE AVERAGE SALARY
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_avg_salary employees.salary%TYPE;
+   v_salary     employees.salary%TYPE;
+BEGIN
+   SELECT AVG(salary)
+     INTO v_avg_salary
+     FROM employees;
 
---FOR..LOOP..END LOOP
---Sa se afiseze suma totala a soldurilor(din fiecare cont) fiecarui angajat cu id-ul cuprins intre 1 si 5 folosind
---structura repetitiva FOR...LOOP..END LOOP
-set serveroutput on
-declare
-v_suma number(7);
-begin
-for v_id in 1..5 loop
-v_suma:=0;
-for v_record in (select sold sal from conturi where id_angajat=v_id)loop
-v_suma:=v_suma+v_record.sal;
-exit when sql%notfound;
-end loop;    
-dbms_output.put_line('Angajatul cu id_ul '||v_id||' are suma conturilor : '||v_suma);
-exit when v_id=5;    
-end loop;
-end;
-/
+   DBMS_OUTPUT.PUT_LINE('Average salary: ' || v_avg_salary);
 
---Sa se afiseze locul nasterii angajatului cu prenumele introdus de la tastatura
---S? se trateze eroarea ap?rut? în cazul în care nu exist? nici un angajat cu acest prenume.
-set serveroutput on
-accept g_nume prompt 'Introduceti prenumele angajatului :'
-declare
-v_nastere carte.loc_nastere%type;
-begin
-select c.loc_nastere into v_nastere from angajat a , carte c where a.id_angajat=c.id_angajat and a.prenume='&g_nume';
-dbms_output.put_line('Loc nastere :'||v_nastere);
-exception when no_data_found then dbms_output.put_line('Nu exista niciun angajat cu numele respectiv !');
-end;
+   FOR v_id IN 3..8 LOOP
+      SELECT salary
+        INTO v_salary
+        FROM employees
+       WHERE employee_id = v_id;
+
+      DBMS_OUTPUT.PUT_LINE('Employee with ID '||v_id||' has salary '||v_salary);
+
+      -- The exit logic was reversed in the original sample; 
+      -- we keep it as is (exits when salary < average).
+      EXIT WHEN v_salary < v_avg_salary;
+   END LOOP;
+END;
 /
 
---Sa se afiseze numele si prenumele angajatului din sediul cu id_sediu=4
---In cazul in care exista mai multi angajati la sediul cu id 4 , sa se arunce o exceptie
-set serveroutput on
-declare
-v_nume contabili.nume%type;
-v_prenume contabili.prenume%type;
-begin
-select nume , prenume into v_nume , v_prenume from contabili where id_sediu=4;
-exception when too_many_rows then dbms_output.put_line('Exista mai multi angajati la sediul cu id 4');
-end;
+--------------------------------------------------------------------------------
+-- 9) IF STATEMENT:
+--    BASED ON THE EMPLOYEE'S ID, INCREASE THE SALARY DEPENDING ON THEIR 
+--    YEARS_OF_EXPERIENCE (FROM EMPLOYEE_DETAILS)
+--    - <20 => SALARY *1.25
+--    - 20..30 => SALARY *1.5
+--    - >30 => SALARY *2
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+ACCEPT g_id PROMPT 'Please enter an employee_id (1-10): '
+DECLARE
+   v_experience       employee_details.years_of_experience%TYPE;
+   v_id               employees.employee_id%TYPE;
+   v_salary           employees.salary%TYPE;
+BEGIN
+   v_id := &g_id;
+
+   SELECT e.salary, d.years_of_experience
+     INTO v_salary, v_experience
+     FROM employees e
+          JOIN employee_details d ON e.employee_id = d.employee_id
+    WHERE e.employee_id = v_id;
+
+   DBMS_OUTPUT.PUT_LINE('Initial salary: ' || v_salary);
+
+   IF v_experience < 20 THEN
+      v_salary := v_salary * 1.25;
+   ELSIF v_experience BETWEEN 20 AND 30 THEN
+      v_salary := v_salary * 1.5;
+   ELSE
+      v_salary := v_salary * 2;
+   END IF;
+
+   DBMS_OUTPUT.PUT_LINE('Final salary: ' || v_salary);
+
+   UPDATE employees
+      SET salary = v_salary
+    WHERE employee_id = v_id;
+END;
+/
+ROLLBACK;
+
+--------------------------------------------------------------------------------
+-- 10) CASE..WHEN..THEN:
+--     UPDATE THE SOCIAL_SECURITY (cas) FOR AN EMPLOYEE GIVEN THEIR LAST_NAME
+--     DEPENDING ON THEIR AGE:
+--       20..35 => cas *0.95
+--       35..50 => cas *0.90
+--       50..69 => cas *0.80
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+ACCEPT g_last_name PROMPT 'Enter the employee LAST NAME: '
+DECLARE
+   v_last_name   employees.last_name%TYPE;
+   v_social_sec  contributions.social_security%TYPE;
+   v_age         employees.age%TYPE;
+BEGIN
+   v_last_name := '&g_last_name';
+
+   SELECT c.social_security, e.age
+     INTO v_social_sec, v_age
+     FROM contributions c
+          JOIN employees e ON e.employee_id = c.employee_id
+    WHERE e.last_name = v_last_name;
+
+   DBMS_OUTPUT.PUT_LINE('Social Security before: ' || v_social_sec);
+
+   CASE
+      WHEN v_age BETWEEN 20 AND 35 THEN
+         v_social_sec := v_social_sec * 0.95;
+      WHEN v_age BETWEEN 35 AND 50 THEN
+         v_social_sec := v_social_sec * 0.90;
+      ELSE
+         v_social_sec := v_social_sec * 0.80;
+   END CASE;
+
+   DBMS_OUTPUT.PUT_LINE('Social Security after: ' || v_social_sec);
+
+   UPDATE contributions
+      SET social_security = v_social_sec
+    WHERE employee_id = (
+          SELECT employee_id 
+            FROM employees 
+           WHERE last_name = v_last_name
+          );
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employee found with that last name!');
+END;
+/
+ROLLBACK;
+
+--------------------------------------------------------------------------------
+-- 11) LOOP..END LOOP:
+--     DISPLAY THE LAST_NAME OF EACH EMPLOYEE
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_last_name employees.last_name%TYPE;
+   i          NUMBER;
+BEGIN
+   i := 1;
+
+   LOOP
+      SELECT last_name
+        INTO v_last_name
+        FROM employees
+       WHERE employee_id = i;
+
+      DBMS_OUTPUT.PUT_LINE('Employee last name: ' || v_last_name);
+
+      i := i + 1;
+      EXIT WHEN i > 10;
+   END LOOP;
+END;
 /
 
---Sa se schimbae id-ul angajatului introdus de la tastatura cu null.
---Sa se arunce eroare in cazul este incalcata vreo restrictie de integritate
-set serveroutput on
-accept g_id prompt 'Introduceti id :'
-declare
-v_exceptie exception;
-pragma exception_init(v_exceptie , -01407);
-begin
-update angajat set id_angajat=null where id_angajat=&g_id;
-exception when v_exceptie then dbms_output.put_line('Restrictia de integritate NOT NULL incalcata');
-end;
+--------------------------------------------------------------------------------
+-- 12) FOR..LOOP..END LOOP:
+--     SHOW THE TOTAL BALANCE FROM ALL ACCOUNTS FOR EMPLOYEES WITH ID=1..5
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_sum NUMBER(7);
+BEGIN
+   FOR v_id IN 1..5 LOOP
+      v_sum := 0;
+
+      FOR v_record IN (
+         SELECT balance AS bal 
+           FROM accounts 
+          WHERE employee_id = v_id
+      ) LOOP
+         v_sum := v_sum + v_record.bal;
+         EXIT WHEN SQL%NOTFOUND;
+      END LOOP;
+
+      DBMS_OUTPUT.PUT_LINE('Employee with ID ' || v_id 
+                           || ' has total account balances: ' 
+                           || v_sum);
+
+      EXIT WHEN v_id = 5;
+   END LOOP;
+END;
 /
 
+--------------------------------------------------------------------------------
+-- 13) DISPLAY THE PLACE_OF_BIRTH FOR AN EMPLOYEE BY FIRST_NAME,
+--     HANDLE NO_DATA_FOUND IF NOT FOUND
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+ACCEPT g_first_name PROMPT 'Enter the employee FIRST NAME: '
+DECLARE
+   v_place_of_birth employee_details.place_of_birth%TYPE;
+BEGIN
+   SELECT d.place_of_birth
+     INTO v_place_of_birth
+     FROM employees e
+          JOIN employee_details d ON e.employee_id = d.employee_id
+    WHERE e.first_name = '&g_first_name';
 
---Sa se incerce adaugarea unui nou sediu in tabela sediu
---cu aceiasi locatie cu cea a sediului cu id_sediu=7
-set serveroutput on
-declare
-v_exceptie exception;
-pragma exception_init(v_exceptie , -00001);
-v_locatie sediu.locatie%type;
-begin
-select locatie into v_locatie from sediu where id_sediu=7;
-insert into sediu values(11,'hugaf',v_locatie,31);
-exception when v_exceptie then dbms_output.put_line('Restrictia de integritate UNIQUE incalcata');
-end;
-/
-
---Sa se afiseze numele si prenumele angajatului cu id-ul introdus de la tastatura
-set serveroutput on
-accept g_id prompt 'Introduceti id :'
-declare
-v_nume angajat.nume%type;
-v_prenume angajat.prenume%type;
-v_id angajat.id_angajat%type;
-v_exceptie exception;
-begin
-v_id:=&g_id;
-if v_id>10 then raise v_exceptie;end if;
-select nume , prenume into v_nume , v_prenume from angajat where id_angajat=v_id;
-dbms_output.put_line('Angajatul are numele : '||v_nume||' '||v_prenume);
-exception when v_exceptie then dbms_output.put_line('ID invalid !');
-end;
+   DBMS_OUTPUT.PUT_LINE('Place of birth: ' || v_place_of_birth);
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employee found with that first name!');
+END;
 /
 
---CURSORUL IMPLICIT
---Sa se modifice numele contabilului cu id sediu = 2
-set serveroutput on
-declare
-v_nume angajat.nume%type;
-begin
-update contabili set nume='&nume' where id_sediu=2;
-dbms_output.put_line('Linii afectate : '||sql%rowcount);
-end;
-/
-rollback;
-
---CURSORUL IMPLICIT
---Sa se modifice salariul angajatului cu id_angajat=12 , cu o valoare introdusa de la tastatura
-set serveroutput on
-begin
-update angajat set salariul=&Salariul where id_angajat=12;
-if sql%notfound then dbms_output.put_line('Nu s-a gasit angajatul cu id-ul respectiv!');end if;
-end;
-/
-rollback;
-
---CURSORUL EXPLICIT CU PARAMETRU
---Sa se afiseze numele si prenumele contabililor angajatilor cu id_angajat mai mare decat o valoare introdusa de la tastatura
-set serveroutput on
-accept z_id prompt 'Introduceti id :'
-declare
-cursor contabili_cursor(g_id number) is select nume nume , prenume prenume from  contabili  where id_sediu=g_id;
-v_id angajat.id_angajat%type;
-rec_cont contabili_cursor%rowtype;
-begin
-v_id:=&z_id;
-open contabili_cursor(v_id);
-loop
-fetch contabili_cursor into rec_cont;
-exit when contabili_cursor%notfound;
-dbms_output.put_line(rec_cont.nume||' '||rec_cont.prenume);
-end loop;
-close contabili_cursor;
-end;
+--------------------------------------------------------------------------------
+-- 14) DISPLAY THE ACCOUNTANT WITH headquarters_id=4
+--     IF MORE THAN ONE ROW IS FOUND => TOO_MANY_ROWS EXCEPTION
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_last_name  accountants.last_name%TYPE;
+   v_first_name accountants.first_name%TYPE;
+BEGIN
+   SELECT last_name, first_name
+     INTO v_last_name, v_first_name
+     FROM accountants
+    WHERE headquarters_id = 4;
+EXCEPTION
+   WHEN TOO_MANY_ROWS THEN
+      DBMS_OUTPUT.PUT_LINE('Multiple accountants exist for headquarters_id=4');
+END;
 /
 
---CURSORUL EXPLICIT CU PARAMETRU
---sa se afiseze soldul al angajatilor cu scorul de credit peste 50 
-set serveroutput on
-accept gg_sc_credit prompt 'Introduceti scorul de credit :'
-declare
-cursor sold_cursor(g_sc_credit number)is select sold s , id_angajat i from conturi where scor_credit>=g_sc_credit;
-rec_cursor sold_cursor%rowtype;
-v_sc_credit number(7);
-begin
-v_sc_credit:=&gg_sc_credit;
-open sold_cursor(v_sc_credit);
-loop
-fetch sold_cursor into rec_cursor;
-exit when sold_cursor%notfound;
-dbms_output.put_line('Angajatul cu id_ul '||rec_cursor.i||' are soldul : '||rec_cursor.s);
-end loop;
-close sold_cursor;
-end;
+--------------------------------------------------------------------------------
+-- 15) SET AN EMPLOYEE_ID TO NULL, RAISING AN EXCEPTION IF IT BREAKS A NOT NULL
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+ACCEPT g_id PROMPT 'Enter an employee_id: '
+DECLARE
+   v_ex EXCEPTION;
+   PRAGMA EXCEPTION_INIT(v_ex, -01407); 
+   -- -01407: cannot update (string) to NULL
+BEGIN
+   UPDATE employees
+      SET employee_id = NULL
+    WHERE employee_id = &g_id;
+EXCEPTION
+   WHEN v_ex THEN
+      DBMS_OUTPUT.PUT_LINE('NOT NULL integrity constraint violated');
+END;
 /
 
---CURSORUL EXLICIT FARA PARAMETRU
---Sa se afiseze numele si id-ul contabililor din sediul cu id=4
-set serveroutput on
-declare 
-cursor cursor_s is select id_contabil id , nume nume from contabili where id_sediu=4;
-v_record cursor_s%rowtype;
-begin
-open cursor_s;
-loop
-fetch cursor_s into v_record;
-exit when cursor_s%notfound;
-dbms_output.put_line('Nume : '||v_record.nume||' id: '||v_record.id);
-end loop;
-close cursor_s;
-end;
+--------------------------------------------------------------------------------
+-- 16) INSERT A NEW HEADQUARTERS WITH THE SAME LOCATION AS headquarters_id=7
+--     HANDLE UNIQUE CONSTRAINT VIOLATION
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_ex       EXCEPTION;
+   PRAGMA EXCEPTION_INIT(v_ex, -00001);  -- unique constraint violated
+   v_location headquarters.location%TYPE;
+BEGIN
+   SELECT location 
+     INTO v_location
+     FROM headquarters
+    WHERE headquarters_id = 7;
+
+   INSERT INTO headquarters 
+   VALUES (11, 'hugaf', v_location, 31);
+
+EXCEPTION
+   WHEN v_ex THEN
+      DBMS_OUTPUT.PUT_LINE('UNIQUE integrity constraint violated');
+END;
 /
 
---CURSORUL EXLICIT FARA PARAMETRU
---Sa se afiseze totalul contributiilor penrtu fiecare angajat
-set serveroutput on
-declare
-cursor nume_cursor is select cas cas, cass cass, impozit impozit from contributii ;
-v_cas contributii.cas%type;
-v_cass contributii.cass%type;
-v_impozit contributii.impozit%type;
-v_record nume_cursor%rowtype;
-v_nume angajat.nume%type;
-v_prenume angajat.prenume%type;
-suma number(7);
-begin
-for v_record in nume_cursor loop
-suma:=0;
-if v_record.cas is not null then suma:=suma+v_record.cas;end if;
-if v_record.cass is not null then suma:=suma+v_record.cass;end if;
-if v_record.impozit is not null then suma:=suma+v_record.impozit;end if;
-select nume , prenume into v_nume , v_prenume from angajat a , contributii c where a.id_angajat=c.id_angajat and c.cas=v_record.cas;
-dbms_output.put_line('Angajatul '||v_nume ||' '||v_prenume||' are total contributii : '||suma);
-end loop;
-end;
-/
---CURSORUL EXLICIT FARA PARAMETRU
---Sa se afiseze denumirea sediilor cu id-urile pare
-set serveroutput on
-declare
-cursor nume_cursor is select denumire_sediu n , id_sediu id from sediu ;
-i number;
-v_rec nume_cursor%rowtype;
-begin
-open nume_cursor;
-loop
-fetch nume_cursor into v_rec;
-exit when nume_cursor%notfound;
-for i in 2..10 loop
-if v_rec.id=i then dbms_output.put_line('Nume sediu : '||v_rec.n);end if;
-end loop;
-end loop;
-end;
+--------------------------------------------------------------------------------
+-- 17) READ AN EMPLOYEE_ID FROM USER; IF > 10, RAISE EXCEPTION;
+--     OTHERWISE DISPLAY LAST_NAME & FIRST_NAME
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+ACCEPT g_id PROMPT 'Enter an employee_id: '
+DECLARE
+   v_last_name   employees.last_name%TYPE;
+   v_first_name  employees.first_name%TYPE;
+   v_id          employees.employee_id%TYPE;
+   v_ex          EXCEPTION;
+BEGIN
+   v_id := &g_id;
+
+   IF v_id > 10 THEN
+      RAISE v_ex;
+   END IF;
+
+   SELECT last_name, first_name
+     INTO v_last_name, v_first_name
+     FROM employees
+    WHERE employee_id = v_id;
+
+   DBMS_OUTPUT.PUT_LINE('Employee: ' || v_last_name || ' ' || v_first_name);
+EXCEPTION
+   WHEN v_ex THEN
+      DBMS_OUTPUT.PUT_LINE('Invalid ID!');
+END;
 /
 
---PACHET
---zona de specificatii a pachetului
-create or replace package pachet_contributii is
-function returnare_cas(v_id angajat.id_angajat%type) return number;
-function returnare_cass(v_id angajat.id_angajat%type) return number;
-function returnare_impozit(v_id angajat.id_angajat%type) return number;
-procedure marire_cas(v_id contributii.id_angajat%type , procent number);
-procedure marire_cass(v_id contributii.id_angajat%type , procent number);
-procedure marire_impozit(v_id contributii.id_angajat%type , procent number);
-end;
+--------------------------------------------------------------------------------
+-- 18) IMPLICIT CURSOR:
+--     UPDATE THE LAST_NAME OF THE ACCOUNTANT WITH headquarters_id=2
+--     DISPLAY SQL%ROWCOUNT
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   v_new_name VARCHAR2(50);
+BEGIN
+   UPDATE accountants
+      SET last_name = '&last_name'
+    WHERE headquarters_id = 2;
+
+   DBMS_OUTPUT.PUT_LINE('Affected rows: ' || SQL%ROWCOUNT);
+END;
 /
---corpul pachetului
-create or replace package body pachet_contributii is
--------------
-function returnare_cas(v_id in angajat.id_angajat%type) return number is
-v_cas number;
-begin
-select cas into v_cas from contributii where id_angajat=v_id;
-return v_cas;
-end;
--------------
-function returnare_cass(v_id in angajat.id_angajat%type) return number is
-v_cass number;
-begin
-select cass into v_cass from contributii where id_angajat=v_id;
-return v_cass;
-end;
--------------
-function returnare_impozit(v_id in angajat.id_angajat%type) return number is
-v_impozit number;
-begin
-select impozit into v_impozit from contributii where id_angajat=v_id;
-return v_impozit;
-end;
--------------
-procedure marire_cas(v_id contributii.id_angajat%type , procent number)is
-v_cas number;
-begin
-select cas into v_cas from contributii where id_angajat=v_id;
-dbms_output.put_line('cas inainte de modificare : '||v_cas);
-update contributii set cas=cas*(1+procent) where id_angajat=v_id;
-select cas into v_cas from contributii where id_angajat=v_id;
-dbms_output.put_line('cas dupa modificare : '||v_cas);
-end;
--------------
-procedure marire_cass(v_id contributii.id_angajat%type , procent number)is
-v_cass number;
-begin
-select cass into v_cass from contributii where id_angajat=v_id;
-dbms_output.put_line('cass inainte de modificare : '||v_cass);
-update contributii set cass=cass*(1+procent) where id_angajat=v_id;
-select cass into v_cass from contributii where id_angajat=v_id;
-dbms_output.put_line('cass dupa modificare : '||v_cass);
-end;
--------------
-procedure marire_impozit(v_id contributii.id_angajat%type , procent number)is
-v_impozit number;
-begin
-select impozit into v_impozit from contributii where id_angajat=v_id;
-dbms_output.put_line('impozit inainte de modificare : '||v_impozit);
-update contributii set impozit=impozit*(1+procent) where id_angajat=v_id;
-select impozit into v_impozit from contributii where id_angajat=v_id;
-dbms_output.put_line('impozit dupa modificare : '||v_impozit);
-end;
-end;
+ROLLBACK;
+
+--------------------------------------------------------------------------------
+-- 19) IMPLICIT CURSOR:
+--     UPDATE THE SALARY OF EMPLOYEE_ID=12 WITH A USER-SPECIFIED VALUE
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+BEGIN
+   UPDATE employees
+      SET salary = &NewSalary
+    WHERE employee_id = 12;
+
+   IF SQL%NOTFOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employee found with the given ID!');
+   END IF;
+END;
+/
+ROLLBACK;
+
+--------------------------------------------------------------------------------
+-- 20) EXPLICIT CURSOR WITH PARAMETER:
+--     DISPLAY LAST_NAME & FIRST_NAME OF ACCOUNTANTS WHO HAVE A headquarters_id 
+--     EQUAL TO THE USER-ENTERED PARAMETER (original logic used "id_sediu=g_id")
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+ACCEPT z_id PROMPT 'Enter a headquarters_id: '
+DECLARE
+   CURSOR accountants_cursor (p_headquarters_id NUMBER) IS
+      SELECT last_name, first_name
+        FROM accountants
+       WHERE headquarters_id = p_headquarters_id;
+
+   rec accountants_cursor%ROWTYPE;
+BEGIN
+   OPEN accountants_cursor(&z_id);
+
+   LOOP
+      FETCH accountants_cursor INTO rec;
+      EXIT WHEN accountants_cursor%NOTFOUND;
+
+      DBMS_OUTPUT.PUT_LINE(rec.last_name || ' ' || rec.first_name);
+   END LOOP;
+
+   CLOSE accountants_cursor;
+END;
 /
 
---stergere pachet
-drop package pachet_contributii;
-drop package body pachet_contributii;
+--------------------------------------------------------------------------------
+-- 21) EXPLICIT CURSOR WITH PARAMETER:
+--     DISPLAY THE BALANCE OF ACCOUNTS WHERE credit_score >= USER-ENTERED VALUE
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+ACCEPT gg_sc_credit PROMPT 'Enter credit score: '
+DECLARE
+   CURSOR balance_cursor (p_credit_score NUMBER) IS
+      SELECT balance, employee_id
+        FROM accounts
+       WHERE credit_score >= p_credit_score;
 
-set serveroutput on;
-begin
-dbms_output.put_line(pachet_contributii.returnare_cas(1));
-dbms_output.put_line(pachet_contributii.returnare_cass(1));
-dbms_output.put_line(pachet_contributii.returnare_impozit(1));
-pachet_contributii.marire_cas(1,0.15);
-pachet_contributii.marire_cass(1,0.15);
-pachet_contributii.marire_impozit(1,0.15);
-end;
+   rec balance_cursor%ROWTYPE;
+BEGIN
+   OPEN balance_cursor(&gg_sc_credit);
+
+   LOOP
+      FETCH balance_cursor INTO rec;
+      EXIT WHEN balance_cursor%NOTFOUND;
+
+      DBMS_OUTPUT.PUT_LINE(
+         'Employee with ID ' || rec.employee_id 
+         || ' has balance: ' || rec.balance
+      );
+   END LOOP;
+
+   CLOSE balance_cursor;
+END;
 /
 
---DECLANSATORI
-----Se creeaza un trigger pentru a nu se permite depasirea limitei maxime a salariului unui angajat(max 10000)
-create or replace trigger max_sal before insert or update on angajat
-for each row
-declare
-v_max number;
-begin
-v_max:=10000;
-if :new.salariul>v_max then
-  	RAISE_APPLICATION_ERROR (-20202, 'Nu se poate depasi salariul maxim pentru functia data');end if;
-end;
-/
-begin
-update angajat set salariul=10500 where id_angajat=1;
-end;
-/
-drop trigger max_sal;
-rollback;
+--------------------------------------------------------------------------------
+-- 22) EXPLICIT CURSOR (NO PARAMS):
+--     DISPLAY THE ACCOUNTANT_ID AND LAST_NAME FOR ACCOUNTANTS IN headquarters_id=4
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   CURSOR c_accountants IS
+      SELECT accountant_id, last_name
+        FROM accountants
+       WHERE headquarters_id = 4;
 
---DECLANSATORI
---Sa se creeze un trigger ce impiedica stergerea sediului cu id_sediu=1
-create or replace trigger sediu_trigger before delete on sediu 
-for each row
-declare
-v_id number;
-begin
-if :old.id_sediu=1 then RAISE_APPLICATION_ERROR (-20203, 'Nu se poate sterge sediul cu id_sediu=1');end if;
-end;
-/
-begin
-delete from sediu where id_sediu=1;
-end;
-/
-drop trigger sediu_trigger;
+   v_rec c_accountants%ROWTYPE;
+BEGIN
+   OPEN c_accountants;
 
+   LOOP
+      FETCH c_accountants INTO v_rec;
+      EXIT WHEN c_accountants%NOTFOUND;
+
+      DBMS_OUTPUT.PUT_LINE(
+         'Last Name: ' || v_rec.last_name 
+         || ' | ID: ' || v_rec.accountant_id
+      );
+   END LOOP;
+
+   CLOSE c_accountants;
+END;
+/
+
+--------------------------------------------------------------------------------
+-- 23) EXPLICIT CURSOR (NO PARAMS):
+--     DISPLAY TOTAL CONTRIBUTIONS (social_security + health_insurance + tax)
+--     FOR EACH EMPLOYEE
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   CURSOR contributions_cursor IS
+      SELECT social_security, health_insurance, tax
+        FROM contributions;
+
+   v_sum          NUMBER(7);
+   v_last_name    employees.last_name%TYPE;
+   v_first_name   employees.first_name%TYPE;
+BEGIN
+   FOR rec IN contributions_cursor LOOP
+      v_sum := 0;
+
+      IF rec.social_security IS NOT NULL THEN
+         v_sum := v_sum + rec.social_security;
+      END IF;
+      IF rec.health_insurance IS NOT NULL THEN
+         v_sum := v_sum + rec.health_insurance;
+      END IF;
+      IF rec.tax IS NOT NULL THEN
+         v_sum := v_sum + rec.tax;
+      END IF;
+
+      -- Match on social_security to find the correct employee
+      SELECT e.last_name, e.first_name
+        INTO v_last_name, v_first_name
+        FROM employees e
+             JOIN contributions c ON e.employee_id = c.employee_id
+       WHERE c.social_security = rec.social_security;
+
+      DBMS_OUTPUT.PUT_LINE(
+         'Employee ' || v_last_name || ' ' || v_first_name 
+         || ' has total contributions: ' || v_sum
+      );
+   END LOOP;
+END;
+/
+
+--------------------------------------------------------------------------------
+-- 24) EXPLICIT CURSOR (NO PARAMS):
+--     DISPLAY HEADQUARTERS_NAME FOR HEADQUARTERS WITH EVEN IDs (2..10)
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+DECLARE
+   CURSOR hq_cursor IS
+      SELECT headquarters_name, headquarters_id
+        FROM headquarters;
+
+   v_rec hq_cursor%ROWTYPE;
+   i     NUMBER;
+BEGIN
+   OPEN hq_cursor;
+
+   LOOP
+      FETCH hq_cursor INTO v_rec;
+      EXIT WHEN hq_cursor%NOTFOUND;
+
+      FOR i IN 2..10 LOOP
+         IF v_rec.headquarters_id = i THEN
+            DBMS_OUTPUT.PUT_LINE(
+               'Headquarters name: ' || v_rec.headquarters_name
+            );
+         END IF;
+      END LOOP;
+   END LOOP;
+END;
+/
+
+--------------------------------------------------------------------------------
+-- 25) PACKAGE SPECIFICATION & BODY (CONTRIBUTIONS_PACKAGE)
+--------------------------------------------------------------------------------
+CREATE OR REPLACE PACKAGE contributions_package IS
+   FUNCTION get_social_security (p_employee_id employees.employee_id%TYPE) 
+      RETURN NUMBER;
+
+   FUNCTION get_health_insurance (p_employee_id employees.employee_id%TYPE) 
+      RETURN NUMBER;
+
+   FUNCTION get_tax (p_employee_id employees.employee_id%TYPE) 
+      RETURN NUMBER;
+
+   PROCEDURE increase_social_security (
+      p_employee_id contributions.employee_id%TYPE, 
+      p_percent     NUMBER
+   );
+
+   PROCEDURE increase_health_insurance (
+      p_employee_id contributions.employee_id%TYPE, 
+      p_percent     NUMBER
+   );
+
+   PROCEDURE increase_tax (
+      p_employee_id contributions.employee_id%TYPE, 
+      p_percent     NUMBER
+   );
+END;
+/
+--------------------------------------------------------------------------------
+CREATE OR REPLACE PACKAGE BODY contributions_package IS
+
+   FUNCTION get_social_security (p_employee_id IN employees.employee_id%TYPE)
+      RETURN NUMBER
+   IS
+      v_val NUMBER;
+   BEGIN
+      SELECT social_security
+        INTO v_val
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+      RETURN v_val;
+   END;
+
+   FUNCTION get_health_insurance (p_employee_id IN employees.employee_id%TYPE)
+      RETURN NUMBER
+   IS
+      v_val NUMBER;
+   BEGIN
+      SELECT health_insurance
+        INTO v_val
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+      RETURN v_val;
+   END;
+
+   FUNCTION get_tax (p_employee_id IN employees.employee_id%TYPE)
+      RETURN NUMBER
+   IS
+      v_val NUMBER;
+   BEGIN
+      SELECT tax
+        INTO v_val
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+      RETURN v_val;
+   END;
+
+   PROCEDURE increase_social_security (
+      p_employee_id IN contributions.employee_id%TYPE,
+      p_percent     IN NUMBER
+   ) IS
+      v_old NUMBER;
+   BEGIN
+      SELECT social_security
+        INTO v_old
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+
+      DBMS_OUTPUT.PUT_LINE('Social Security before: ' || v_old);
+
+      UPDATE contributions
+         SET social_security = social_security * (1 + p_percent)
+       WHERE employee_id = p_employee_id;
+
+      SELECT social_security
+        INTO v_old
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+
+      DBMS_OUTPUT.PUT_LINE('Social Security after: ' || v_old);
+   END;
+
+   PROCEDURE increase_health_insurance (
+      p_employee_id IN contributions.employee_id%TYPE,
+      p_percent     IN NUMBER
+   ) IS
+      v_old NUMBER;
+   BEGIN
+      SELECT health_insurance
+        INTO v_old
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+
+      DBMS_OUTPUT.PUT_LINE('Health Insurance before: ' || v_old);
+
+      UPDATE contributions
+         SET health_insurance = health_insurance * (1 + p_percent)
+       WHERE employee_id = p_employee_id;
+
+      SELECT health_insurance
+        INTO v_old
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+
+      DBMS_OUTPUT.PUT_LINE('Health Insurance after: ' || v_old);
+   END;
+
+   PROCEDURE increase_tax (
+      p_employee_id IN contributions.employee_id%TYPE,
+      p_percent     IN NUMBER
+   ) IS
+      v_old NUMBER;
+   BEGIN
+      SELECT tax
+        INTO v_old
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+
+      DBMS_OUTPUT.PUT_LINE('Tax before: ' || v_old);
+
+      UPDATE contributions
+         SET tax = tax * (1 + p_percent)
+       WHERE employee_id = p_employee_id;
+
+      SELECT tax
+        INTO v_old
+        FROM contributions
+       WHERE employee_id = p_employee_id;
+
+      DBMS_OUTPUT.PUT_LINE('Tax after: ' || v_old);
+   END;
+END;
+/
+
+--------------------------------------------------------------------------------
+-- EXAMPLE OF DROPPING THE PACKAGE
+--------------------------------------------------------------------------------
+DROP PACKAGE contributions_package;
+DROP PACKAGE BODY contributions_package;
+
+--------------------------------------------------------------------------------
+-- EXAMPLE USAGE OF THE PACKAGE (UNCOMMENT IF PACKAGE EXISTS)
+--------------------------------------------------------------------------------
+SET SERVEROUTPUT ON;
+BEGIN
+   DBMS_OUTPUT.PUT_LINE(contributions_package.get_social_security(1));
+   DBMS_OUTPUT.PUT_LINE(contributions_package.get_health_insurance(1));
+   DBMS_OUTPUT.PUT_LINE(contributions_package.get_tax(1));
+
+   contributions_package.increase_social_security(1, 0.15);
+   contributions_package.increase_health_insurance(1, 0.15);
+   contributions_package.increase_tax(1, 0.15);
+END;
+/
+
+--------------------------------------------------------------------------------
+-- 26) TRIGGERS
+--------------------------------------------------------------------------------
+-- a) TRIGGER TO PREVENT SALARY FROM EXCEEDING 10,000
+CREATE OR REPLACE TRIGGER trg_max_salary
+BEFORE INSERT OR UPDATE
+ON employees
+FOR EACH ROW
+DECLARE
+   v_max NUMBER := 10000;
+BEGIN
+   IF :NEW.salary > v_max THEN
+      RAISE_APPLICATION_ERROR(-20202, 'Cannot exceed the maximum allowed salary (10000)');
+   END IF;
+END;
+/
+BEGIN
+   UPDATE employees
+      SET salary = 10500
+    WHERE employee_id = 1;
+END;
+/
+DROP TRIGGER trg_max_salary;
+ROLLBACK;
+
+--------------------------------------------------------------------------------
+-- b) TRIGGER TO PREVENT DELETION OF HEADQUARTERS WITH headquarters_id=1
+CREATE OR REPLACE TRIGGER trg_headquarters_no_delete
+BEFORE DELETE ON headquarters
+FOR EACH ROW
+BEGIN
+   IF :OLD.headquarters_id = 1 THEN
+      RAISE_APPLICATION_ERROR(-20203, 'Cannot delete headquarters with ID=1');
+   END IF;
+END;
+/
+BEGIN
+   DELETE FROM headquarters
+    WHERE headquarters_id = 1;
+END;
+/
+DROP TRIGGER trg_headquarters_no_delete;
