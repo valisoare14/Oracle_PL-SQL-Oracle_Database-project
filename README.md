@@ -1,20 +1,20 @@
 # Oracle_PL-SQL-Oracle_Database-project
 
-  # Tehnologii utilizate:
+# Technologies Used:
 - **RDBMS:** Oracle Database
-- **Limbaj :** Oracle PL/SQL
-  
-# Tema Economică
-Tema economică aleasă pentru baza de date este **GESTIUNEA ANGAJATILOR UNEI FIRME**. Aplicația se ocupă de:
-- Gestiunea contribuțiilor la stat ale angajaților
-- Gestiunea contabililor fiecărui angajat și sediul juridic al contabililor respective
-- Evidența cărții de muncă
-- Evidența conturilor la bănci
+- **Language:** Oracle PL/SQL
 
-## Tabele Implicate în Proiect
-- **Tabela ANGAJAT** - Detalii despre angajați.
-- **Tabela CONTABILI** - Gestionarea contabililor fiecărui angajat și structura ierarhică prin intermediul coloanei `id_sef_contabil`.
-- **Tabela SEDIU** - Conține sediile tuturor contabililor din tabela CONTABILI, dar și alte sedii neocupate.
-- **Tabela CONTRIBUTII** - Structurarea tuturor dărilor angajaților la stat, incluzând contribuții sociale (CAS), asigurări de sănătate (CASS), și impozitul pe venit (impozit). Include și date despre plățile contribuțiilor.
-- **Tabela CONTURI** - Gestiunea eficientă a conturilor la bănci ale angajaților, ținând evidența soldului, scorului de credit și marjei de profit.
-- **Tabela CARTE** - Conține informații care se regăsesc și în contractul individual de muncă, precum locul de naștere, numărul de ordine, data începerii activității, funcția și vechimea în câmpul muncii.
+# Economic Theme
+The chosen economic theme for the database is **EMPLOYEE MANAGEMENT IN A COMPANY**. The application handles:
+- Managing employees' state contributions
+- Managing the accountants assigned to each employee and their registered offices
+- Keeping records of the employment book
+- Tracking bank accounts
+
+## Tables Involved in the Project
+- **EMPLOYEE Table** - Contains details about employees.
+- **ACCOUNTANTS Table** - Manages the accountants assigned to each employee and the hierarchical structure through the `id_sef_contabil` column.
+- **HEADQUARTERS Table** - Contains the registered offices of all accountants in the ACCOUNTANTS table, as well as other unoccupied offices.
+- **CONTRIBUTIONS Table** - Structures all employee contributions to the state, including social security contributions (CAS), health insurance contributions (CASS), and income tax (tax). It also includes information about contribution payments.
+- **ACCOUNTS Table** - Efficiently manages employees' bank accounts, keeping track of balances, credit scores, and profit margins.
+- **EMPLOYMENT_DETAILS Table** - Contains information also found in the individual employment contract, such as place of birth, order number, start date of employment, position, and work experience.
